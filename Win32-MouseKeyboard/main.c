@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: ", a, __FUNCTION__, __FILE__, __LINE__, ##args);
+#define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: " a, __FUNCTION__, __FILE__, __LINE__, ##args);
 
 #if RAND_MAX == 32767
 #define rand32() ((rand() << 15) + (rand() << 1) + (rand() & 1))
