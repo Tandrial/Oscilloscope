@@ -61,7 +61,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
                                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                                 NULL, NULL, hInstance, NULL);
   if(window_handle == NULL) {
-    PRINT_ERROR("CreateWindowA() failed. Returned NULL.\n");
+    PRINT_ERROR("CreateWindow() failed. Returned NULL.\n");
     return -1;
   }
 
