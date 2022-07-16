@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: " a, __FUNCTION__, __FILE__, __LINE__, ##args);
+#define PRINT_ERROR(a, args...) printf("ERROR %s() %s Line %d: ", a, __FUNCTION__, __FILE__, __LINE__, ##args);
 
 #if RAND_MAX == 32767
 #define rand32() ((rand() << 15) + (rand() << 1) + (rand() & 1))
@@ -30,10 +30,16 @@ struct {
   int x, y;
   uint8_t buttons;
 } mouse;
-enum { MOUSE_LEFT = 0b1, MOUSE_MIDDLE = 0b10, MOUSE_RIGHT = 0b100, MOUSE_X1 = 0b1000, MOUSE_X2 = 0b10000 };
+
+enum { MOUSE_LEFT = 0b1,
+       MOUSE_MIDDLE = 0b10,
+       MOUSE_RIGHT = 0b100,
+       MOUSE_X1 = 0b1000,
+       MOUSE_X2 = 0b10000 };
 
 LRESULT CALLBACK WindowProcessMessage(HWND window_handle, UINT message, WPARAM wParam, LPARAM lParam);
 
+// https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-winmain
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
   const wchar_t window_class_name[] = L"Window Class";
   static WNDCLASS window_class = { 0 };
@@ -48,15 +54,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
   bitmap_info.bmiHeader.biCompression = BI_RGB;
   bitmap_device_context = CreateCompatibleDC(0);
 
-  window_handle = CreateWindow((PCSTR)window_class_name, "Learn to Program Windows", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+  // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowa
+  window_handle = CreateWindow((PCSTR)window_class_name,
+                                "Learn to Program Windows",
+                                WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                                CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                                NULL, NULL, hInstance, NULL);
   if(window_handle == NULL) {
-    PRINT_ERROR("CreateWindow() failed. Returned NULL.\n");
+    PRINT_ERROR("CreateWindowA() failed. Returned NULL.\n");
     return -1;
   }
 
   while(!quit) {
     static MSG message = { 0 };
-    while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) { DispatchMessage(&message); }
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-peekmessagea
+    while(PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
+      // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-dispatchmessage
+      DispatchMessage(&message);
+    }
 
     static int keyboard_x = 0, keyboard_y = 0;
     if(keyboard[VK_RIGHT] || keyboard['D']) ++keyboard_x;
@@ -73,8 +88,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
     frame.pixels[keyboard_x + keyboard_y*frame.w] = 0x00ffffff;
     if(mouse.buttons & MOUSE_LEFT) frame.pixels[mouse.x + mouse.y*frame.w] = 0x00ffffff;
-
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-invalidaterect
     InvalidateRect(window_handle, NULL, FALSE);
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatewindow
     UpdateWindow(window_handle);
   }
 
@@ -93,16 +109,31 @@ LRESULT CALLBACK WindowProcessMessage(HWND window_handle, UINT message, WPARAM w
     case WM_PAINT: {
       static PAINTSTRUCT paint;
       static HDC device_context;
+      // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-beginpaint
       device_context = BeginPaint(window_handle, &paint);
-      BitBlt(device_context, paint.rcPaint.left, paint.rcPaint.top, paint.rcPaint.right - paint.rcPaint.left, paint.rcPaint.bottom - paint.rcPaint.top, bitmap_device_context, paint.rcPaint.left, paint.rcPaint.top, SRCCOPY);
+      // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-bitblt
+      BitBlt(device_context,
+             paint.rcPaint.left,
+             paint.rcPaint.top,
+             paint.rcPaint.right - paint.rcPaint.left,
+             paint.rcPaint.bottom - paint.rcPaint.top,
+             bitmap_device_context, paint.rcPaint.left,
+             paint.rcPaint.top,
+             SRCCOPY);
+      // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endpaint
       EndPaint(window_handle,&paint);
     } break;
 
     case WM_SIZE: {
       frame.w = bitmap_info.bmiHeader.biWidth = LOWORD(lParam);
       frame.h = bitmap_info.bmiHeader.biHeight = HIWORD(lParam);
-      if(bitmap) DeleteObject(bitmap);
+      if(bitmap) {
+        // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-deleteobject
+        DeleteObject(bitmap);
+      }
+      // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createdibsection
       bitmap = CreateDIBSection(NULL, &bitmap_info, DIB_RGB_COLORS, (void**)&frame.pixels, 0, 0);
+      // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-selectobject
       SelectObject(bitmap_device_context, bitmap);
     } break;
 
@@ -112,7 +143,9 @@ LRESULT CALLBACK WindowProcessMessage(HWND window_handle, UINT message, WPARAM w
       mouse.buttons = 0;
     } break;
 
-    case WM_SETFOCUS: has_focus = true; break;
+    case WM_SETFOCUS:
+      has_focus = true;
+      break;
 
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP:
@@ -147,20 +180,26 @@ LRESULT CALLBACK WindowProcessMessage(HWND window_handle, UINT message, WPARAM w
 
     case WM_XBUTTONDOWN: {
       if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) {
-           mouse.buttons |= MOUSE_X1;
-      } else { mouse.buttons |= MOUSE_X2; }
+        mouse.buttons |= MOUSE_X1;
+      } else {
+        mouse.buttons |= MOUSE_X2;
+      }
     } break;
     case WM_XBUTTONUP: {
       if(GET_XBUTTON_WPARAM(wParam) == XBUTTON1) {
-           mouse.buttons &= ~MOUSE_X1;
-      } else { mouse.buttons &= ~MOUSE_X2; }
+        mouse.buttons &= ~MOUSE_X1;
+      } else {
+        mouse.buttons &= ~MOUSE_X2;
+        }
     } break;
 
     case WM_MOUSEWHEEL: {
       printf("%s\n", wParam & 0b10000000000000000000000000000000 ? "Down" : "Up");
     } break;
 
-    default: return DefWindowProc(window_handle, message, wParam, lParam);
+    default:
+      // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-defwindowproca
+      return DefWindowProc(window_handle, message, wParam, lParam);
   }
   return 0;
 }
